@@ -1,16 +1,8 @@
 // Game variables
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const startScreen = document.getElementById('startScreen');
-const gameOverScreen = document.getElementById('gameOver');
-const startButton = document.getElementById('startButton');
-const restartButton = document.getElementById('restartButton');
-const scoreValue = document.getElementById('scoreValue');
-const livesValue = document.getElementById('livesValue');
-const levelValue = document.getElementById('levelValue');
-const finalScore = document.getElementById('finalScore');
-const rapidFireIndicator = document.getElementById('rapidFireIndicator');
-const multiShotIndicator = document.getElementById('multiShotIndicator');
+let canvas, ctx;
+let startScreen, gameOverScreen, startButton, restartButton;
+let scoreValue, livesValue, levelValue, finalScore;
+let rapidFireIndicator, multiShotIndicator;
 
 // Game state
 let gameState = {
@@ -24,21 +16,8 @@ let gameState = {
     explosions: []
 };
 
-// Player properties
-let player = {
-    x: 100,
-    y: canvas.height - 120, // Fixed: Adjusted to ensure player is visible
-    width: 40,
-    height: 60,
-    speed: 5,
-    color: '#00FF00',
-    isMovingLeft: false,
-    isMovingRight: false,
-    isMovingUp: false,
-    isMovingDown: false,
-    facingRight: true,
-    health: 100
-};
+// Player properties - initialized later
+let player;
 
 // Power-ups
 let powerUps = {
@@ -63,6 +42,48 @@ let collectibles = [];
 // Background elements
 let backgroundElements = [];
 
+// Initialize all game elements after DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Get all DOM elements
+    canvas = document.getElementById('gameCanvas');
+    ctx = canvas.getContext('2d');
+    startScreen = document.getElementById('startScreen');
+    gameOverScreen = document.getElementById('gameOver');
+    startButton = document.getElementById('startButton');
+    restartButton = document.getElementById('restartButton');
+    scoreValue = document.getElementById('scoreValue');
+    livesValue = document.getElementById('livesValue');
+    levelValue = document.getElementById('levelValue');
+    finalScore = document.getElementById('finalScore');
+    rapidFireIndicator = document.getElementById('rapidFireIndicator');
+    multiShotIndicator = document.getElementById('multiShotIndicator');
+    
+    // Now initialize player with actual canvas dimensions
+    player = {
+        x: 100,
+        y: canvas.height - 120, // Fixed: Adjusted to ensure player is visible
+        width: 40,
+        height: 60,
+        speed: 5,
+        color: '#00FF00',
+        isMovingLeft: false,
+        isMovingRight: false,
+        isMovingUp: false,
+        isMovingDown: false,
+        facingRight: true,
+        health: 100
+    };
+    
+    // Initialize background
+    initBackground();
+    updateScore();
+    updateLives();
+    updateLevel();
+    
+    // Show start screen initially
+    startScreen.classList.remove('hidden');
+});
+
 // Initialize background
 function initBackground() {
     for (let i = 0; i < 50; i++) {
@@ -78,6 +99,8 @@ function initBackground() {
 
 // Draw player character with enhanced visuals
 function drawPlayer() {
+    if (!player) return; // Safety check
+    
     // Draw player body with gradient
     const gradient = ctx.createLinearGradient(
         player.x, 
@@ -278,6 +301,8 @@ function updateExplosions() {
 
 // Update player position based on input
 function updatePlayer() {
+    if (!player) return; // Safety check
+    
     if (gameState.keys['ArrowLeft'] && player.x > 0) {
         player.x -= player.speed;
         player.isMovingLeft = true;
@@ -574,47 +599,47 @@ function applyPowerUp(type) {
 
 // Shoot a bullet
 function shoot() {
-    if (bulletTimer <= 0) {
-        // Adjust cooldown based on power-ups
-        let currentCooldown = powerUps.rapidFire.active ? bulletCooldown / 2 : bulletCooldown;
-        
-        // Single shot or multi-shot based on power-up
-        if (powerUps.multiShot.active) {
-            // Shoot 3 bullets in spread pattern
-            bullets.push({
-                x: player.facingRight ? player.x + player.width : player.x,
-                y: player.y + player.height / 2,
-                dx: player.facingRight ? bulletSpeed : -bulletSpeed,
-                dy: -3,
-                type: 'spread'
-            });
-            bullets.push({
-                x: player.facingRight ? player.x + player.width : player.x,
-                y: player.y + player.height / 2,
-                dx: player.facingRight ? bulletSpeed : -bulletSpeed,
-                dy: 0,
-                type: 'straight'
-            });
-            bullets.push({
-                x: player.facingRight ? player.x + player.width : player.x,
-                y: player.y + player.height / 2,
-                dx: player.facingRight ? bulletSpeed : -bulletSpeed,
-                dy: 3,
-                type: 'spread'
-            });
-        } else {
-            // Single bullet
-            bullets.push({
-                x: player.facingRight ? player.x + player.width : player.x,
-                y: player.y + player.height / 2,
-                dx: player.facingRight ? bulletSpeed : -bulletSpeed,
-                dy: 0,
-                type: 'normal'
-            });
-        }
-        
-        bulletTimer = currentCooldown;
+    if (!player || bulletTimer <= 0) return; // Safety check
+    
+    // Adjust cooldown based on power-ups
+    let currentCooldown = powerUps.rapidFire.active ? bulletCooldown / 2 : bulletCooldown;
+    
+    // Single shot or multi-shot based on power-up
+    if (powerUps.multiShot.active) {
+        // Shoot 3 bullets in spread pattern
+        bullets.push({
+            x: player.facingRight ? player.x + player.width : player.x,
+            y: player.y + player.height / 2,
+            dx: player.facingRight ? bulletSpeed : -bulletSpeed,
+            dy: -3,
+            type: 'spread'
+        });
+        bullets.push({
+            x: player.facingRight ? player.x + player.width : player.x,
+            y: player.y + player.height / 2,
+            dx: player.facingRight ? bulletSpeed : -bulletSpeed,
+            dy: 0,
+            type: 'straight'
+        });
+        bullets.push({
+            x: player.facingRight ? player.x + player.width : player.x,
+            y: player.y + player.height / 2,
+            dx: player.facingRight ? bulletSpeed : -bulletSpeed,
+            dy: 3,
+            type: 'spread'
+        });
+    } else {
+        // Single bullet
+        bullets.push({
+            x: player.facingRight ? player.x + player.width : player.x,
+            y: player.y + player.height / 2,
+            dx: player.facingRight ? bulletSpeed : -bulletSpeed,
+            dy: 0,
+            type: 'normal'
+        });
     }
+    
+    bulletTimer = currentCooldown;
 }
 
 // Update power-ups timers
@@ -638,24 +663,24 @@ function updatePowerUps() {
 
 // Update score display
 function updateScore() {
-    scoreValue.textContent = gameState.score;
+    if (scoreValue) scoreValue.textContent = gameState.score;
 }
 
 // Update lives display
 function updateLives() {
-    livesValue.textContent = gameState.lives;
+    if (livesValue) livesValue.textContent = gameState.lives;
 }
 
 // Update level display
 function updateLevel() {
-    levelValue.textContent = gameState.level;
+    if (levelValue) levelValue.textContent = gameState.level;
 }
 
 // Game over
 function gameOver() {
     gameState.gameRunning = false;
-    finalScore.textContent = gameState.score;
-    gameOverScreen.classList.remove('hidden');
+    if (finalScore) finalScore.textContent = gameState.score;
+    if (gameOverScreen) gameOverScreen.classList.remove('hidden');
 }
 
 // Next level
@@ -676,6 +701,8 @@ function nextLevel() {
 
 // Reset game
 function resetGame() {
+    if (!player) return; // Safety check
+    
     player.x = 100;
     player.y = canvas.height - 120; // Fixed: Set to correct initial position
     player.health = 100;
@@ -698,11 +725,13 @@ function resetGame() {
     updateLives();
     updateLevel();
     
-    gameOverScreen.classList.add('hidden');
+    if (gameOverScreen) gameOverScreen.classList.add('hidden');
 }
 
 // Handle keyboard input
 document.addEventListener('keydown', function(e) {
+    if (!gameState) return;
+    
     gameState.keys[e.key] = true;
     
     if (e.key === ' ' && gameState.gameRunning && !gameState.paused) {
@@ -717,19 +746,25 @@ document.addEventListener('keydown', function(e) {
 });
 
 document.addEventListener('keyup', function(e) {
+    if (!gameState) return;
+    
     gameState.keys[e.key] = false;
 });
 
 // Button event listeners
-startButton.addEventListener('click', function() {
-    startScreen.classList.add('hidden');
-    resetGame();
-});
+if (startButton) {
+    startButton.addEventListener('click', function() {
+        if (startScreen) startScreen.classList.add('hidden');
+        resetGame();
+    });
+}
 
-restartButton.addEventListener('click', function() {
-    gameOverScreen.classList.add('hidden');
-    resetGame();
-});
+if (restartButton) {
+    restartButton.addEventListener('click', function() {
+        if (gameOverScreen) gameOverScreen.classList.add('hidden');
+        resetGame();
+    });
+}
 
 // Main game loop
 function gameLoop() {
@@ -799,13 +834,14 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-// Initialize the game when DOM is fully loaded
-document.addEventListener('DOMContentLoaded', function() {
-    initBackground();
-    updateScore();
-    updateLives();
-    updateLevel();
-    
-    // Show start screen initially
-    startScreen.classList.remove('hidden');
-});
+// Start the game loop when game is running
+function startGameLoop() {
+    if (gameState.gameRunning) {
+        gameLoop();
+    }
+}
+
+// Initial setup - start the game loop if game is running
+if (gameState.gameRunning) {
+    gameLoop();
+}
