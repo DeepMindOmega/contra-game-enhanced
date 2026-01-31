@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced Contra-Style Game</title>
+    <title>Advanced Contra-Style Game</title>
     <style>
         body {
             margin: 0;
@@ -43,6 +43,50 @@
             border-radius: 5px;
             border: 1px solid #4cc9f0;
             z-index: 10;
+        }
+
+        #powerUpIndicators {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 15px;
+            border-radius: 5px;
+            border: 1px solid #4cc9f0;
+            z-index: 10;
+        }
+
+        .powerUpIndicator {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            font-weight: bold;
+            opacity: 0.5;
+        }
+
+        .powerUpIndicator.active {
+            opacity: 1.0;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        #rapidFireIndicator {
+            background: linear-gradient(135deg, #00FFFF, #008888);
+        }
+
+        #multiShotIndicator {
+            background: linear-gradient(135deg, #FF00FF, #880088);
         }
 
         #startScreen, #gameOver {
@@ -123,9 +167,14 @@
             <div id="lives">Lives: <span id="livesValue">3</span></div>
             <div id="level">Level: <span id="levelValue">1</span></div>
         </div>
+        <div id="powerUpIndicators">
+            <div id="rapidFireIndicator" class="powerUpIndicator" title="Rapid Fire Active">RF</div>
+            <div id="multiShotIndicator" class="powerUpIndicator" title="Multi-Shot Active">MS</div>
+        </div>
         <div id="startScreen">
-            <h1>Enhanced Contra Game</h1>
-            <p>Defeat enemies with arrow keys and spacebar!</p>
+            <h1>Advanced Contra Game</h1>
+            <p>Use arrow keys to move, spacebar to shoot!<br>
+            Collect power-ups: Red (Health), Cyan (Rapid Fire), Magenta (Multi-Shot)</p>
             <button id="startButton">Start Game</button>
         </div>
         <div id="gameOver" class="hidden">

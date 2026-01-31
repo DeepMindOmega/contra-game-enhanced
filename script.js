@@ -1,4 +1,4 @@
-// Basic game variables
+// Enhanced game variables
 let canvas, ctx;
 let gameState = {
     score: 0,
@@ -6,29 +6,42 @@ let gameState = {
     level: 1,
     gameRunning: false,
     paused: false,
-    keys: {}
+    keys: {},
+    particles: [],
+    explosions: []
 };
 
 // Player properties
 let player = {
     x: 100,
-    y: 400, // Fixed position for testing
+    y: 400,
     width: 40,
     height: 60,
     speed: 5,
-    health: 100
+    health: 100,
+    facingRight: true
+};
+
+// Power-ups
+let powerUps = {
+    rapidFire: { active: false, timer: 0, duration: 300 }, // 5 seconds at 60fps
+    multiShot: { active: false, timer: 0, duration: 300 },
+    health: { active: false, timer: 0, duration: 120 }
 };
 
 // Bullets array
 let bullets = [];
 const bulletSpeed = 10;
-let bulletCooldown = 15; // Frames between shots
+let bulletCooldown = 15; // Base cooldown
 let bulletTimer = 0;
 
 // Enemies array
 let enemies = [];
 let enemySpawnRate = 90; // Frames between enemy spawns
 let enemySpawnTimer = 0;
+
+// Collectibles
+let collectibles = [];
 
 // Initialize when page loads
 window.onload = function() {
@@ -44,6 +57,8 @@ window.onload = function() {
     const livesValue = document.getElementById('livesValue');
     const levelValue = document.getElementById('levelValue');
     const finalScore = document.getElementById('finalScore');
+    const rapidFireIndicator = document.getElementById('rapidFireIndicator');
+    const multiShotIndicator = document.getElementById('multiShotIndicator');
     
     // Button event listeners
     startButton.addEventListener('click', function() {
@@ -61,7 +76,7 @@ window.onload = function() {
     startScreen.style.display = 'flex';
 };
 
-// Draw player function
+// Draw player function with enhanced visuals
 function drawPlayer() {
     // Draw player body with gradient
     const gradient = ctx.createLinearGradient(
@@ -70,8 +85,8 @@ function drawPlayer() {
         player.x, 
         player.y + player.height
     );
-    gradient.addColorStop(0, '#00FF00');
-    gradient.addColorStop(1, '#00AA00');
+    gradient.addColorStop(0, player.facingRight ? '#00FF00' : '#00CC00');
+    gradient.addColorStop(1, player.facingRight ? '#00AA00' : '#008800');
     
     ctx.fillStyle = gradient;
     ctx.fillRect(player.x, player.y, player.width, player.height);
@@ -82,7 +97,11 @@ function drawPlayer() {
     
     // Draw player gun
     ctx.fillStyle = '#AAAAAA';
-    ctx.fillRect(player.x + player.width - 5, player.y + 20, 15, 8);
+    if (player.facingRight) {
+        ctx.fillRect(player.x + player.width - 5, player.y + 20, 15, 8);
+    } else {
+        ctx.fillRect(player.x - 10, player.y + 20, 15, 8);
+    }
     
     // Draw health bar
     ctx.fillStyle = '#FF0000';
@@ -91,15 +110,29 @@ function drawPlayer() {
     ctx.fillRect(player.x, player.y - 25, (player.width * player.health) / 100, 5);
 }
 
-// Draw a bullet
+// Draw a bullet with enhanced visual
 function drawBullet(bullet) {
-    ctx.fillStyle = '#FFFF00'; // Yellow
+    // Create gradient for bullet
+    const gradient = ctx.createRadialGradient(
+        bullet.x, bullet.y, 0,
+        bullet.x, bullet.y, 5
+    );
+    gradient.addColorStop(0, '#FFFF00');
+    gradient.addColorStop(1, '#FF8800');
+    
+    ctx.fillStyle = gradient;
     ctx.beginPath();
     ctx.arc(bullet.x, bullet.y, 4, 0, Math.PI * 2);
     ctx.fill();
+    
+    // Add trail effect
+    ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
+    ctx.beginPath();
+    ctx.arc(bullet.x - (bullet.dx > 0 ? 3 : -3), bullet.y, 2, 0, Math.PI * 2);
+    ctx.fill();
 }
 
-// Draw an enemy
+// Draw an enemy with enhanced visuals
 function drawEnemy(enemy) {
     // Enemy body with gradient
     const gradient = ctx.createLinearGradient(
@@ -122,15 +155,124 @@ function drawEnemy(enemy) {
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(enemy.x + 8, enemy.y - 8, 3, 3);
     ctx.fillRect(enemy.x + 15, enemy.y - 8, 3, 3);
+    
+    // Health bar for stronger enemies
+    if (enemy.maxHealth && enemy.maxHealth > 30) {
+        ctx.fillStyle = '#FF0000';
+        ctx.fillRect(enemy.x, enemy.y - 15, enemy.width, 4);
+        ctx.fillStyle = '#00FF00';
+        ctx.fillRect(enemy.x, enemy.y - 15, (enemy.width * enemy.health) / enemy.maxHealth, 4);
+    }
+}
+
+// Draw collectible item
+function drawCollectible(collectible) {
+    switch(collectible.type) {
+        case 'health':
+            ctx.fillStyle = '#FF0000';
+            break;
+        case 'rapidFire':
+            ctx.fillStyle = '#00FFFF';
+            break;
+        case 'multiShot':
+            ctx.fillStyle = '#FF00FF';
+            break;
+        default:
+            ctx.fillStyle = '#FFFF00';
+    }
+    
+    ctx.beginPath();
+    ctx.arc(collectible.x, collectible.y, collectible.size, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Add shine effect
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.beginPath();
+    ctx.arc(collectible.x - 2, collectible.y - 2, 2, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+// Draw explosion effect
+function drawExplosion(explosion) {
+    const radius = explosion.radius * (explosion.maxRadius / 100);
+    
+    const gradient = ctx.createRadialGradient(
+        explosion.x, explosion.y, 0,
+        explosion.x, explosion.y, radius
+    );
+    gradient.addColorStop(0, `rgba(255, 255, 200, ${explosion.alpha})`);
+    gradient.addColorStop(0.7, `rgba(255, 100, 0, ${explosion.alpha * 0.7})`);
+    gradient.addColorStop(1, `rgba(255, 0, 0, 0)`);
+    
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(explosion.x, explosion.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+// Create particle effect
+function createParticles(x, y, color, count = 10) {
+    for (let i = 0; i < count; i++) {
+        gameState.particles.push({
+            x: x,
+            y: y,
+            size: Math.random() * 3 + 1,
+            speedX: (Math.random() - 0.5) * 6,
+            speedY: (Math.random() - 0.5) * 6,
+            color: color,
+            life: 30 + Math.random() * 30
+        });
+    }
+}
+
+// Create explosion effect
+function createExplosion(x, y) {
+    gameState.explosions.push({
+        x: x,
+        y: y,
+        radius: 5,
+        maxRadius: 30,
+        alpha: 1,
+        shrinkSpeed: 0.02
+    });
+}
+
+// Update particles
+function updateParticles() {
+    for (let i = gameState.particles.length - 1; i >= 0; i--) {
+        const p = gameState.particles[i];
+        p.x += p.speedX;
+        p.y += p.speedY;
+        p.life--;
+        
+        if (p.life <= 0) {
+            gameState.particles.splice(i, 1);
+        }
+    }
+}
+
+// Update explosions
+function updateExplosions() {
+    for (let i = gameState.explosions.length - 1; i >= 0; i--) {
+        const exp = gameState.explosions[i];
+        exp.radius += 1;
+        exp.alpha -= exp.shrinkSpeed;
+        
+        if (exp.alpha <= 0 || exp.radius > exp.maxRadius) {
+            gameState.explosions.splice(i, 1);
+        }
+    }
 }
 
 // Update player
 function updatePlayer() {
     if (gameState.keys['ArrowLeft'] && player.x > 0) {
         player.x -= player.speed;
+        player.facingRight = false;
     }
     if (gameState.keys['ArrowRight'] && player.x < canvas.width - player.width) {
         player.x += player.speed;
+        player.facingRight = true;
     }
     if (gameState.keys['ArrowUp'] && player.y > 50) { // Leave room for head
         player.y -= player.speed;
@@ -145,11 +287,12 @@ function updateBullets() {
     for (let i = bullets.length - 1; i >= 0; i--) {
         const bullet = bullets[i];
         
-        // Move bullet to the right
-        bullet.x += bulletSpeed;
+        // Move bullet based on player facing direction
+        bullet.x += bullet.dx;
+        bullet.y += bullet.dy;
         
         // Remove bullets that go off-screen
-        if (bullet.x > canvas.width) {
+        if (bullet.x < 0 || bullet.x > canvas.width || bullet.y < 0 || bullet.y > canvas.height) {
             bullets.splice(i, 1);
             continue;
         }
@@ -163,10 +306,26 @@ function updateBullets() {
                 bullet.y > enemy.y &&
                 bullet.y < enemy.y + enemy.height
             ) {
-                // Enemy destroyed
-                gameState.score += 100;
-                enemies.splice(j, 1);
+                // Damage enemy
+                enemy.health -= 30;
+                
+                // Create hit effect
+                createParticles(bullet.x, bullet.y, '#FFFF00', 5);
+                
+                // Remove bullet
                 bullets.splice(i, 1);
+                
+                if (enemy.health <= 0) {
+                    // Enemy destroyed
+                    gameState.score += enemy.points || 100;
+                    createExplosion(enemy.x + enemy.width/2, enemy.y + enemy.height/2);
+                    enemies.splice(j, 1);
+                    
+                    // Chance to drop power-up
+                    if (Math.random() < 0.3) {
+                        spawnCollectible(enemy.x, enemy.y);
+                    }
+                }
                 break;
             }
         }
@@ -178,19 +337,29 @@ function updateEnemies() {
     for (let i = enemies.length - 1; i >= 0; i--) {
         const enemy = enemies[i];
         
-        // Move enemy towards player
-        if (enemy.x > player.x) {
-            enemy.x -= enemy.speed;
+        // Move enemy towards player or in pattern
+        if (enemy.pattern === 'chase') {
+            if (enemy.x > player.x) {
+                enemy.x -= enemy.speed;
+            } else {
+                enemy.x += enemy.speed;
+            }
+            
+            if (enemy.y > player.y) {
+                enemy.y -= enemy.speed * 0.5;
+            } else {
+                enemy.y += enemy.speed * 0.5;
+            }
+        } else if (enemy.pattern === 'patrol') {
+            enemy.x += enemy.direction * enemy.speed;
+            
+            // Reverse direction at edges
+            if (enemy.x <= 0 || enemy.x >= canvas.width - enemy.width) {
+                enemy.direction *= -1;
+            }
         } else {
-            enemy.x += enemy.speed;
-        }
-        
-        // Move vertically too
-        enemy.y += enemy.vy;
-        
-        // Reverse vertical direction if hitting top/bottom
-        if (enemy.y <= 0 || enemy.y >= canvas.height - enemy.height) {
-            enemy.vy *= -1;
+            // Default movement (left to right or right to left)
+            enemy.x += enemy.direction * enemy.speed;
         }
         
         // Check collision with player
@@ -202,21 +371,57 @@ function updateEnemies() {
         ) {
             // Collision with player
             player.health -= 20;
-            enemies.splice(i, 1);
+            createParticles(enemy.x, enemy.y, '#FF0000', 10);
             
             if (player.health <= 0) {
+                // Player loses a life
                 gameState.lives--;
                 player.health = 100;
+                updateLives();
                 
                 if (gameState.lives <= 0) {
                     gameOver();
+                } else {
+                    // Reset player position
+                    player.x = 100;
+                    player.y = 400;
                 }
             }
+            
+            // Remove enemy after collision
+            enemies.splice(i, 1);
+            createExplosion(enemy.x + enemy.width/2, enemy.y + enemy.height/2);
         }
         
         // Remove enemies that go off-screen
-        if (enemy.x < -50 || enemy.x > canvas.width + 50) {
+        if (enemy.x < -50 || enemy.x > canvas.width + 50 || 
+            enemy.y > canvas.height + 50 || enemy.y < -50) {
             enemies.splice(i, 1);
+        }
+    }
+}
+
+// Update collectibles
+function updateCollectibles() {
+    for (let i = collectibles.length - 1; i >= 0; i--) {
+        const collectible = collectibles[i];
+        
+        // Move collectible downward
+        collectible.y += collectible.speed;
+        
+        // Check collision with player
+        const distance = Math.sqrt(
+            Math.pow(player.x + player.width/2 - collectible.x, 2) +
+            Math.pow(player.y + player.height/2 - collectible.y, 2)
+        );
+        
+        if (distance < player.width/2 + collectible.size) {
+            // Collect the item
+            applyPowerUp(collectible.type);
+            collectibles.splice(i, 1);
+        } else if (collectible.y > canvas.height) {
+            // Remove if off screen
+            collectibles.splice(i, 1);
         }
     }
 }
@@ -224,35 +429,176 @@ function updateEnemies() {
 // Spawn a new enemy
 function spawnEnemy() {
     const side = Math.random() > 0.5 ? 'left' : 'right';
-    let x;
+    let x, direction;
     
     if (side === 'left') {
         x = -30;
+        direction = 1;
     } else {
-        x = canvas.width;
+        x = canvas.width + 30;
+        direction = -1;
     }
     
     // Random Y position
-    const y = Math.random() * (canvas.height - 100) + 50;
+    const y = Math.random() * (canvas.height - 200) + 50;
     
-    enemies.push({
+    // Determine enemy type based on level
+    let enemyType;
+    if (gameState.level > 3 && Math.random() < 0.3) {
+        enemyType = 'strong'; // Stronger enemy with more health
+    } else if (gameState.level > 2 && Math.random() < 0.4) {
+        enemyType = 'patrol'; // Patrol enemy
+    } else {
+        enemyType = 'normal';
+    }
+    
+    const baseSpeed = 1 + (gameState.level * 0.2);
+    
+    let enemy;
+    if (enemyType === 'strong') {
+        enemy = {
+            x: x,
+            y: y,
+            width: 40,
+            height: 40,
+            speed: baseSpeed * 0.7, // Slower but stronger
+            direction: direction,
+            health: 60,
+            maxHealth: 60,
+            points: 200,
+            pattern: 'chase'
+        };
+    } else if (enemyType === 'patrol') {
+        enemy = {
+            x: x,
+            y: y,
+            width: 30,
+            height: 30,
+            speed: baseSpeed,
+            direction: direction,
+            health: 30,
+            maxHealth: 30,
+            points: 150,
+            pattern: 'patrol'
+        };
+    } else {
+        enemy = {
+            x: x,
+            y: y,
+            width: 25,
+            height: 25,
+            speed: baseSpeed,
+            direction: direction,
+            health: 30,
+            maxHealth: 30,
+            points: 100,
+            pattern: 'normal'
+        };
+    }
+    
+    enemies.push(enemy);
+}
+
+// Spawn a collectible item
+function spawnCollectible(x, y) {
+    const types = ['health', 'rapidFire', 'multiShot'];
+    const type = types[Math.floor(Math.random() * types.length)];
+    
+    collectibles.push({
         x: x,
         y: y,
-        width: 30,
-        height: 30,
-        speed: 1 + Math.random() * 2,
-        vy: (Math.random() - 0.5) * 2 // Vertical movement
+        size: 8,
+        speed: 2,
+        type: type
     });
+}
+
+// Apply power-up effect
+function applyPowerUp(type) {
+    switch(type) {
+        case 'health':
+            player.health = Math.min(100, player.health + 30);
+            break;
+        case 'rapidFire':
+            powerUps.rapidFire.active = true;
+            powerUps.rapidFire.timer = powerUps.rapidFire.duration;
+            const rapidFireIndicator = document.getElementById('rapidFireIndicator');
+            if (rapidFireIndicator) rapidFireIndicator.classList.add('active');
+            break;
+        case 'multiShot':
+            powerUps.multiShot.active = true;
+            powerUps.multiShot.timer = powerUps.multiShot.duration;
+            const multiShotIndicator = document.getElementById('multiShotIndicator');
+            if (multiShotIndicator) multiShotIndicator.classList.add('active');
+            break;
+    }
+    
+    createParticles(player.x + player.width/2, player.y + player.height/2, '#00FF00', 15);
 }
 
 // Shoot a bullet
 function shoot() {
     if (bulletTimer <= 0) {
-        bullets.push({
-            x: player.x + player.width,
-            y: player.y + player.height / 2
-        });
-        bulletTimer = bulletCooldown;
+        // Adjust cooldown based on power-ups
+        let currentCooldown = powerUps.rapidFire.active ? bulletCooldown / 2 : bulletCooldown;
+        
+        // Single shot or multi-shot based on power-up
+        if (powerUps.multiShot.active) {
+            // Shoot 3 bullets in spread pattern
+            bullets.push({
+                x: player.facingRight ? player.x + player.width : player.x,
+                y: player.y + player.height / 2,
+                dx: player.facingRight ? bulletSpeed : -bulletSpeed,
+                dy: -3,
+                type: 'spread'
+            });
+            bullets.push({
+                x: player.facingRight ? player.x + player.width : player.x,
+                y: player.y + player.height / 2,
+                dx: player.facingRight ? bulletSpeed : -bulletSpeed,
+                dy: 0,
+                type: 'straight'
+            });
+            bullets.push({
+                x: player.facingRight ? player.x + player.width : player.x,
+                y: player.y + player.height / 2,
+                dx: player.facingRight ? bulletSpeed : -bulletSpeed,
+                dy: 3,
+                type: 'spread'
+            });
+        } else {
+            // Single bullet
+            bullets.push({
+                x: player.facingRight ? player.x + player.width : player.x,
+                y: player.y + player.height / 2,
+                dx: player.facingRight ? bulletSpeed : -bulletSpeed,
+                dy: 0,
+                type: 'normal'
+            });
+        }
+        
+        bulletTimer = currentCooldown;
+    }
+}
+
+// Update power-ups timers
+function updatePowerUps() {
+    if (powerUps.rapidFire.active) {
+        powerUps.rapidFire.timer--;
+        if (powerUps.rapidFire.timer <= 0) {
+            powerUps.rapidFire.active = false;
+            const rapidFireIndicator = document.getElementById('rapidFireIndicator');
+            if (rapidFireIndicator) rapidFireIndicator.classList.remove('active');
+        }
+    }
+    
+    if (powerUps.multiShot.active) {
+        powerUps.multiShot.timer--;
+        if (powerUps.multiShot.timer <= 0) {
+            powerUps.multiShot.active = false;
+            const multiShotIndicator = document.getElementById('multiShotIndicator');
+            if (multiShotIndicator) multiShotIndicator.classList.remove('active');
+        }
     }
 }
 
@@ -290,6 +636,9 @@ function resetGame() {
     
     bullets = [];
     enemies = [];
+    collectibles = [];
+    gameState.particles = [];
+    gameState.explosions = [];
     
     gameState.score = 0;
     gameState.lives = 3;
@@ -301,6 +650,12 @@ function resetGame() {
     updateScore();
     updateLives();
     updateLevel();
+    
+    // Reset power-up indicators
+    const rapidFireIndicator = document.getElementById('rapidFireIndicator');
+    const multiShotIndicator = document.getElementById('multiShotIndicator');
+    if (rapidFireIndicator) rapidFireIndicator.classList.remove('active');
+    if (multiShotIndicator) multiShotIndicator.classList.remove('active');
     
     document.getElementById('gameOver').style.display = 'none';
     gameLoop();
@@ -338,14 +693,18 @@ function gameLoop() {
         return;
     }
     
-    // Clear canvas
-    ctx.fillStyle = '#0f3460';
+    // Clear canvas with semi-transparent overlay for trail effect
+    ctx.fillStyle = 'rgba(15, 52, 96, 0.2)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     // Update game objects
     updatePlayer();
     updateBullets();
     updateEnemies();
+    updateCollectibles();
+    updateParticles();
+    updateExplosions();
+    updatePowerUps();
     
     // Handle shooting cooldown
     if (bulletTimer > 0) {
@@ -353,7 +712,7 @@ function gameLoop() {
     }
     
     // Handle enemy spawning
-    if (enemySpawnTimer <= 0 && enemies.length < 10) { // Limit number of enemies
+    if (enemySpawnTimer <= 0 && enemies.length < 15 + gameState.level) { // Increase max enemies with level
         spawnEnemy();
         enemySpawnTimer = enemySpawnRate;
     } else {
@@ -365,6 +724,16 @@ function gameLoop() {
     
     bullets.forEach(drawBullet);
     enemies.forEach(drawEnemy);
+    collectibles.forEach(drawCollectible);
+    gameState.particles.forEach(particle => {
+        ctx.fillStyle = particle.color;
+        ctx.globalAlpha = particle.life / 60;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+    });
+    gameState.explosions.forEach(drawExplosion);
     
     // Update UI
     updateScore();
