@@ -1,0 +1,167 @@
+body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+    color: #fff;
+}
+
+#gameContainer {
+    position: relative;
+    border: 3px solid #4cc9f0;
+    border-radius: 8px;
+    box-shadow: 0 0 30px rgba(76, 201, 240, 0.5);
+    background: #000;
+}
+
+#gameCanvas {
+    background: linear-gradient(to bottom, #0f3460, #1a1a2e);
+    display: block;
+    border-radius: 5px;
+}
+
+#gameUI {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    display: flex;
+    justify-content: space-between;
+    z-index: 10;
+}
+
+#gameInfo {
+    display: flex;
+    gap: 20px;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 10px 15px;
+    border-radius: 5px;
+    border: 1px solid #4cc9f0;
+}
+
+#powerUps {
+    display: flex;
+    gap: 10px;
+}
+
+.power-up {
+    background: rgba(76, 201, 240, 0.3);
+    padding: 5px 10px;
+    border-radius: 3px;
+    border: 1px solid #4cc9f0;
+    font-size: 12px;
+    opacity: 0.5;
+}
+
+.power-up.active {
+    opacity: 1;
+    background: rgba(255, 215, 0, 0.5);
+    border: 1px solid gold;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+#controls {
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    color: #a9a9a9;
+    font-size: 14px;
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 5px 0;
+}
+
+#gameOver, #startScreen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 20;
+    color: white;
+    text-align: center;
+}
+
+#gameOver h2, #startScreen h1 {
+    color: #f04f4f;
+    font-size: 48px;
+    margin-bottom: 20px;
+    text-shadow: 0 0 10px rgba(240, 79, 79, 0.7);
+}
+
+#startScreen h1 {
+    color: #4cc9f0;
+    text-shadow: 0 0 10px rgba(76, 201, 240, 0.7);
+    font-size: 40px;
+}
+
+#gameOver p, #startScreen p {
+    font-size: 24px;
+    margin-bottom: 30px;
+}
+
+#finalScore {
+    color: #f0c75e;
+    font-weight: bold;
+}
+
+button {
+    background: linear-gradient(to bottom, #4cc9f0, #3a86ff);
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-size: 18px;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    box-shadow: 0 0 15px rgba(76, 201, 240, 0.5);
+}
+
+button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(76, 201, 240, 0.8);
+    background: linear-gradient(to bottom, #5bd0ff, #4a96ff);
+}
+
+.hidden {
+    display: none !important;
+}
+
+#particles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: #fff;
+    border-radius: 50%;
+    pointer-events: none;
+}
