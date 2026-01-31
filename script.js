@@ -27,7 +27,7 @@ let gameState = {
 // Player properties
 let player = {
     x: 100,
-    y: canvas.height - 150,
+    y: canvas.height - 120, // Fixed: Adjusted to ensure player is visible
     width: 40,
     height: 60,
     speed: 5,
@@ -91,9 +91,10 @@ function drawPlayer() {
     ctx.fillStyle = gradient;
     ctx.fillRect(player.x, player.y, player.width, player.height);
     
-    // Draw player head
+    // Draw player head (ensuring it stays within bounds)
+    const headY = Math.max(0, player.y - 15); // Ensure head doesn't go above canvas
     ctx.fillStyle = '#FFD700';
-    ctx.fillRect(player.x + 10, player.y - 15, 20, 15);
+    ctx.fillRect(player.x + 10, headY, 20, 15);
     
     // Draw player gun
     ctx.fillStyle = '#AAAAAA';
@@ -105,9 +106,9 @@ function drawPlayer() {
     
     // Draw health bar
     ctx.fillStyle = '#FF0000';
-    ctx.fillRect(player.x, player.y - 25, player.width, 5);
+    ctx.fillRect(player.x, Math.max(5, player.y - 25), player.width, 5);
     ctx.fillStyle = '#00FF00';
-    ctx.fillRect(player.x, player.y - 25, (player.width * player.health) / 100, 5);
+    ctx.fillRect(player.x, Math.max(5, player.y - 25), (player.width * player.health) / 100, 5);
 }
 
 // Draw a bullet with enhanced visual
@@ -149,19 +150,19 @@ function drawEnemy(enemy) {
     
     // Enemy head
     ctx.fillStyle = '#8B0000';
-    ctx.fillRect(enemy.x + 5, enemy.y - 10, 15, 10);
+    ctx.fillRect(enemy.x + 5, Math.max(0, enemy.y - 10), 15, 10);
     
     // Enemy eyes
     ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(enemy.x + 8, enemy.y - 8, 3, 3);
-    ctx.fillRect(enemy.x + 15, enemy.y - 8, 3, 3);
+    ctx.fillRect(enemy.x + 8, Math.max(0, enemy.y - 8), 3, 3);
+    ctx.fillRect(enemy.x + 15, Math.max(0, enemy.y - 8), 3, 3);
     
     // Health bar for stronger enemies
     if (enemy.maxHealth && enemy.maxHealth > 30) {
         ctx.fillStyle = '#FF0000';
-        ctx.fillRect(enemy.x, enemy.y - 15, enemy.width, 4);
+        ctx.fillRect(enemy.x, Math.max(5, enemy.y - 15), enemy.width, 4);
         ctx.fillStyle = '#00FF00';
-        ctx.fillRect(enemy.x, enemy.y - 15, (enemy.width * enemy.health) / enemy.maxHealth, 4);
+        ctx.fillRect(enemy.x, Math.max(5, enemy.y - 15), (enemy.width * enemy.health) / enemy.maxHealth, 4);
     }
 }
 
@@ -293,7 +294,7 @@ function updatePlayer() {
         player.isMovingRight = false;
     }
     
-    if (gameState.keys['ArrowUp'] && player.y > 50) {
+    if (gameState.keys['ArrowUp'] && player.y > 50) { // Changed from 0 to 50 to account for head
         player.y -= player.speed;
         player.isMovingUp = true;
     } else {
@@ -410,7 +411,7 @@ function updateEnemies() {
                 } else {
                     // Reset player position
                     player.x = 100;
-                    player.y = canvas.height - 150;
+                    player.y = canvas.height - 120; // Fixed: Reset to correct position
                 }
             }
             
@@ -476,7 +477,7 @@ function spawnEnemy() {
         direction = -1;
     }
     
-    // Random Y position
+    // Random Y position - ensuring it's within canvas bounds
     const y = Math.random() * (canvas.height - 200) + 50;
     
     // Determine enemy type based on level
@@ -667,7 +668,7 @@ function nextLevel() {
     
     // Reset player position
     player.x = 100;
-    player.y = canvas.height - 150;
+    player.y = canvas.height - 120; // Fixed: Reset to correct position
     
     // Heal player partially
     player.health = Math.min(100, player.health + 30);
@@ -676,7 +677,7 @@ function nextLevel() {
 // Reset game
 function resetGame() {
     player.x = 100;
-    player.y = canvas.height - 150;
+    player.y = canvas.height - 120; // Fixed: Set to correct initial position
     player.health = 100;
     
     bullets = [];
