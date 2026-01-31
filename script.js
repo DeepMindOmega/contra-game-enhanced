@@ -798,18 +798,13 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-// Initialize the game
-initBackground();
-updateScore();
-updateLives();
-updateLevel();
-
-// Start the game loop if game is running
-function startGameLoop() {
-    if (gameState.gameRunning) {
-        gameLoop();
-    }
-}
-
-// Initial draw of start screen
-startScreen.classList.remove('hidden');
+// Initialize the game when DOM is fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    initBackground();
+    updateScore();
+    updateLives();
+    updateLevel();
+    
+    // Show start screen initially
+    startScreen.classList.remove('hidden');
+});
